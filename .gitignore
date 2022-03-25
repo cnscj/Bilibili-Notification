@@ -1,0 +1,9 @@
+._.DS_Store
+.DS_Store
+
+.settings
+.history
+.project
+.cocos-project.json
+
+__pycache__

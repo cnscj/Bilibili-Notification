@@ -3,9 +3,11 @@
 
 import os
 import sys
+from utils import uid_util
 
 def main():
-    pass
+    print(uid_util.get_event_uid())
 
 if __name__ == "__main__":
     main()
+ 
