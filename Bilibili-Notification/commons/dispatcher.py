@@ -20,8 +20,8 @@ class Dispatcher(singleton.Singleton):
             self.__event_listeners[name] = event_listeners_list
         
         temp_listener_info = {
-            "name" : name,
-            "listener_or_caller" : listener_or_caller,
+            'name' : name,
+            'listener_or_caller' : listener_or_caller,
         }
 
         if priority > 0 :
@@ -34,14 +34,14 @@ class Dispatcher(singleton.Singleton):
         event_listeners_list = self.__event_listeners.get(name)
         if event_listeners_list:
             for i, v in enumerate(event_listeners_list):
-                if v["listener_or_caller"] == listener_or_caller:
+                if v['listener_or_caller'] == listener_or_caller:
                     del self.__event_listeners[i]
 
-    def dispatch(self, name, *args, **kwargs):
+    def dispatch_event(self, name, *args, **kwargs):
         event_listeners_list = self.__event_listeners.get(name)
         if event_listeners_list :
             for _,v in enumerate(event_listeners_list):
-                listener_or_caller = v["listener_or_caller"]
+                listener_or_caller = v['listener_or_caller']
                 listener_or_caller(*args, **kwargs)
 
 dispatcher = Dispatcher()

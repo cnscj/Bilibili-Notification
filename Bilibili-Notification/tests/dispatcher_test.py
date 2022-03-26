@@ -22,4 +22,4 @@ if __name__ == "__main__":
     dispatcher.add_event_listener(event_type.TEST_EVENT,aIns.oo)
     dispatcher.add_event_listener(event_type.TEST_EVENT,bIns.oo)
 
-    dispatcher.dispatch(event_type.TEST_EVENT,"TT")
+    dispatcher.dispatch_event(event_type.TEST_EVENT,"TT")

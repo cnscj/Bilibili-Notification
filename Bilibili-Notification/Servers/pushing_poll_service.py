@@ -2,11 +2,14 @@
 
 #轮询推送服务
 import queue
+
 from commons import dinging_robot
 from servers import service
 from defines import event_type
 from defines import message_type
 from configs import dingding_config
+from commons.dispatcher import dispatcher
+from utils.logger import logger
 
 class PushingPollService(service.Service):
     __dynamic_robot = None  #动态推送
@@ -20,23 +23,29 @@ class PushingPollService(service.Service):
         self.__live_robot = dinging_robot.DingDingRobot(dingding_config.DINGDING_PUSH_ROBOT_TOKEN_2,dingding_config.DINGDING_PUSH_ROBOT_SEC_2)
         self.__notice_robot = dinging_robot.DingDingRobot(dingding_config.DINGDING_PUSH_ROBOT_TOKEN_3,dingding_config.DINGDING_PUSH_ROBOT_SEC_3)
 
-    def onUpdate(self):
+    def _onUpdate(self):
         while (not self.__message_queue.empty()):
-            message = self.__message_queue.get()
-            if message.type == message_type.MessageType.Dynamic:
-                self.__dynamic_robot
-                
-            elif message.type == message_type.MessageType.Live:
-                self.__live_robot
-                
-            elif message.type == message_type.MessageType.Notice:
-                self.__notice_robot
-
+            msg = self.__message_queue.get()
+            msg_type = msg['type']
+            msg_content = msg['content']
+            if msg_type == message_type.MessageType.Dynamic:
+                self.__dynamic_robot.send_markdown(msg_content)
     
-    def onStart(self):
-        pass
+            elif msg_type == message_type.MessageType.Live:
+                self.__live_robot.send_markdown(msg_content)
+                
+            elif msg_type == message_type.MessageType.Notice:
+                self.__notice_robot.send_markdown(msg_content)
 
-    def onExit(self):
-        pass
+    def __push_message(self,msg):
+        logger.info('【查询动态状态】:即将推送内容')
+        return
+        self.__message_queue.put(msg)
+
+    def _onStart(self):
+        dispatcher.add_event_listener(event_type.MESSAGE_PUSH,self.__push_message)
+
+    def _onExit(self):
+        dispatcher.remove_event_listener(event_type.MESSAGE_PUSH,self.__push_message)
                 
 

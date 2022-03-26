@@ -4,11 +4,9 @@
 # @Time: 2021/3/28 01:00
 
 import random
-
 import requests
-
-from logger import logger
-from proxy import my_proxy
+from commons.bili_query.proxy import my_proxy
+from utils.logger import logger
 
 USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.93 Safari/537.36",

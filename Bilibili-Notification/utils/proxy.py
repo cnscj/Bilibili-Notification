@@ -5,15 +5,16 @@
 
 import requests
 
-from logger import logger
+from utils.logger import logger
 
 
 class Proxy(object):
+    enable = None
     proxy_pool_url = None
 
     current_proxy_ip = None
 
-    def __init__(self,url):
+    def __init__(self,url=None):
         self.proxy_pool_url = url
 
     def get_proxy(self):

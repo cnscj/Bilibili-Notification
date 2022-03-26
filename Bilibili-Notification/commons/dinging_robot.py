@@ -28,7 +28,7 @@ class DingDingRobot:
         sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
         return sign,timestamp
 
-    def get_send_url(cls, attrs = None):
+    def get_send_url(cls, attrs=None):
         attrStr = ""
         if attrs != None :
             for k,v in attrs.items():
@@ -43,7 +43,7 @@ class DingDingRobot:
         self.__token = token
         self.__secret = secret
         
-    def send_text(self, content):
+    def send_text(self, content=""):
         data = {
             "msgtype": "text",
             "text": {
@@ -52,7 +52,7 @@ class DingDingRobot:
         }
         self.send(data)
 
-    def send_link(self, text, title, picUrl, messageUrl):
+    def send_link(self, text="", title="", picUrl="", messageUrl=""):
         data = {
             "msgtype": "link", 
             "link": {
@@ -64,7 +64,7 @@ class DingDingRobot:
         }
         self.send(data)
 
-    def send_markdown(self, title, text):
+    def send_markdown(self, title="", text=""):
         data = {
             "msgtype": "markdown",
             "markdown": {
@@ -83,7 +83,7 @@ class DingDingRobot:
         }
         self.send(data)
 
-    def send_action_card(self, title, text, singleTitle, singleURL):
+    def send_action_card(self, title="", text="", singleTitle="", singleURL=""):
         data = {
             "msgtype": "actionCard",
             "actionCard": {
