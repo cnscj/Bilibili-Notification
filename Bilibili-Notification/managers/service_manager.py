@@ -1,8 +1,17 @@
 #!/usr/bin/python
 import queue
+import threading
 from turtle import update
-import thread
 from patterns import singleton
+def poll_service(args):
+    service = args.service
+    if service:
+        while (True):
+            if service._is_async_stop:
+                break
+            service.update()
+
+
 class ServiceManager(singleton.Singleton):
     __sync_services = {}
     __async_services = {}
@@ -38,27 +47,27 @@ class ServiceManager(singleton.Singleton):
                 del self.__sync_services[services_name]
                 
     def execute(self):
-        #TODO:开始异步服务的
+        #开始异步服务的
         while (not self.__async_services_start.empty()):
             service = self.__async_services_start.get()
             services_name = type(service).__name__
             service_in_dict = self.__async_services.get(services_name)
             if not service_in_dict: 
                 service._onStart()
-                # func = lambda : 
-                #     while (True):
-                #         service.update()
-                # self.__async_services[services_name] = thread.start_new_thread(func)
-
+                service._is_async_stop = False
+                thread = threading.Thread(target=poll_service, args=(service))
+                self.__async_services[services_name] = thread
+                thread.start()
+                
         while (not self.__async_services_stop.empty()):
             service = self.__async_services_stop.get()
             services_name = type(service).__name__
             service_in_dict = self.__async_services.get(services_name)
-            if not service_in_dict: 
+            if service_in_dict: 
                 service._onExit()
+                service._is_async_stop = True
                 del self.__async_services[services_name]
             
-
 
         #同步服务轮询
         while (True):

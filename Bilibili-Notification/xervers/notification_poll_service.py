@@ -30,8 +30,6 @@ class NotificationPollService(service.Service):
             temp_capturer = capturer.BilibiliCapturer(uid)
             self.__bilibili_official_capturers.append(temp_capturer)
 
-        self.interval = services_config.INTERVALS_SECOND
-
     def _onUpdate(self):
         if not self.__is_in_poll_time():
             return 
@@ -68,6 +66,8 @@ class NotificationPollService(service.Service):
                             'content' : self.__convert_dynamic_content_to_message(captured_uid,captured_dynamic_content)
                         })
 
+        time.sleep(services_config.INTERVALS_SECOND)
+        
     #是否在轮询的时间内
     def __is_in_poll_time(self):
         current_time = time.strftime("%H:%M", time.localtime(time.time()))

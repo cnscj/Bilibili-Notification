@@ -4,7 +4,9 @@ class Service:
     
     enabled = True  #是否开启
     interval = -1   #轮询间隔
+
     is_async = False #是否异步
+    _is_async_stop = True #异步暂停用
 
     __next_timestamp = 0
 
