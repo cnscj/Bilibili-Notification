@@ -19,8 +19,9 @@ class NotificationPollService(service.Service):
 
     __dynamic_dict = {}         #记录各个成员间最新的动态id
     __living_status_dict = {}   #记录最新的直播状态
-    __len_of_deque = 20         #
+    __len_of_deque = 20         #最大记录条数
     def __init__(self):
+        self.is_async = True 
         uid_list_member = services_config.UID_LIST_MEMBER
         uid_list_official = services_config.UID_LIST_OFFICIAL
         for _,uid in enumerate(uid_list_member):

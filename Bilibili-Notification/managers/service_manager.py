@@ -3,13 +3,14 @@ import queue
 import threading
 from turtle import update
 from patterns import singleton
-def poll_service(args):
-    service = args.service
-    if service:
-        while (True):
-            if service._is_async_stop:
-                break
-            service.update()
+def poll_service(service):
+    if not service:
+        return
+        
+    while (True):
+        if service._is_async_stop:
+            break
+        service.update()
 
 
 class ServiceManager(singleton.Singleton):
@@ -26,7 +27,8 @@ class ServiceManager(singleton.Singleton):
         is_async = service.is_async
 
         if is_async:
-            if not self.__async_services:
+            service_in_dict = self.__async_services.get(services_name)
+            if not service_in_dict:
                 self.__async_services_start.put(service)
         else :
             service_in_dict = self.__sync_services.get(services_name)
@@ -39,7 +41,9 @@ class ServiceManager(singleton.Singleton):
         is_async = service.is_async
 
         if is_async:
-            self.__async_services_stop.put(service)
+            service_in_dict = self.__async_services.get(services_name)
+            if service_in_dict:
+                self.__async_services_stop.put(service)
         else:
             service_in_dict = self.__sync_services.get(services_name)
             if service_in_dict:
@@ -48,29 +52,28 @@ class ServiceManager(singleton.Singleton):
                 
     def execute(self):
         #开始异步服务的
-        while (not self.__async_services_start.empty()):
-            service = self.__async_services_start.get()
-            services_name = type(service).__name__
-            service_in_dict = self.__async_services.get(services_name)
-            if not service_in_dict: 
-                service._onStart()
-                service._is_async_stop = False
-                thread = threading.Thread(target=poll_service, args=(service))
-                self.__async_services[services_name] = thread
-                thread.start()
-                
-        while (not self.__async_services_stop.empty()):
-            service = self.__async_services_stop.get()
-            services_name = type(service).__name__
-            service_in_dict = self.__async_services.get(services_name)
-            if service_in_dict: 
-                service._onExit()
-                service._is_async_stop = True
-                del self.__async_services[services_name]
-            
-
-        #同步服务轮询
         while (True):
+            while (not self.__async_services_start.empty()):
+                service = self.__async_services_start.get()
+                services_name = type(service).__name__
+                service_in_dict = self.__async_services.get(services_name)
+                if not service_in_dict: 
+                    service._onStart()
+                    service._is_async_stop = False
+                    thread = threading.Thread(target=poll_service,args=[service])
+                    self.__async_services[services_name] = thread
+                    thread.start()
+                    
+            while (not self.__async_services_stop.empty()):
+                service = self.__async_services_stop.get()
+                services_name = type(service).__name__
+                service_in_dict = self.__async_services.get(services_name)
+                if service_in_dict: 
+                    service._onExit()
+                    service._is_async_stop = True
+                    del self.__async_services[services_name]
+            
+            #同步服务轮询
             for _,v in self.__sync_services.items():
                 v.update()
 
