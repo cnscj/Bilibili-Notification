@@ -27,19 +27,20 @@ class PushingPollService(service.Service):
         while (not self.__message_queue.empty()):
             msg = self.__message_queue.get()
             msg_type = msg['type']
-            msg_content = msg['content']
+            msg_title = msg['title']
+            msg_text = msg['text']
             if msg_type == message_type.MessageType.Dynamic:
-                self.__dynamic_robot.send_markdown(msg_content)
+                self.__dynamic_robot.send_markdown(title=msg_title,text=msg_text)
     
             elif msg_type == message_type.MessageType.Live:
-                self.__live_robot.send_markdown(msg_content)
+                self.__live_robot.send_markdown(title=msg_title,text=msg_text)
                 
             elif msg_type == message_type.MessageType.Notice:
-                self.__notice_robot.send_markdown(msg_content)
+                self.__notice_robot.send_markdown(title=msg_title,text=msg_text)
 
     def __push_message(self,msg):
-        logger.info('【查询动态状态】:即将推送内容')
-        return
+        msg_title = msg['title']
+        logger.info('【推送服务】准备推送:【{title}】'.format(title=msg_title))
         self.__message_queue.put(msg)
 
     def _onStart(self):

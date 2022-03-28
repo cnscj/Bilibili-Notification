@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import queue
 import threading
-from turtle import update
 from patterns import singleton
 def poll_service(service):
     if not service:
@@ -16,8 +15,8 @@ def poll_service(service):
 class ServiceManager(singleton.Singleton):
     __sync_services = {}
     __async_services = {}
-    __async_services_start = queue.Queue() #推送队列
-    __async_services_stop = queue.Queue() #推送队列
+    __async_services_start = queue.Queue()
+    __async_services_stop = queue.Queue()
 
     def __init__(self):
         pass

@@ -24,8 +24,12 @@ class Service:
             self.__next_timestamp = cur_timestamp + self.interval
 
         self._onUpdate()
+        self._onAfterUpdate()
 
     def _onUpdate(self):
+        pass
+    
+    def _onAfterUpdate(self):
         pass
 
     def _onStart(self):

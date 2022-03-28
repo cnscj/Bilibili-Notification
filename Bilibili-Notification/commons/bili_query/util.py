@@ -5,7 +5,7 @@
 
 import random
 import requests
-from commons.bili_query.proxy import my_proxy
+from utils.proxy import my_proxy
 from utils.logger import logger
 
 USER_AGENTS = [

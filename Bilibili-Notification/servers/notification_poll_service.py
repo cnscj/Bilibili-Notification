@@ -5,6 +5,7 @@ import time
 import json
 from collections import deque
 from configs import services_config
+from configs import language_config
 from servers import service
 from defines import event_type
 from defines import message_type
@@ -19,9 +20,8 @@ class NotificationPollService(service.Service):
 
     __dynamic_dict = {}         #记录各个成员间最新的动态id
     __living_status_dict = {}   #记录最新的直播状态
-    __len_of_deque = 20         #最大记录条数
+
     def __init__(self):
-        self.is_async = True 
         uid_list_member = services_config.UID_LIST_MEMBER
         uid_list_official = services_config.UID_LIST_OFFICIAL
         for _,uid in enumerate(uid_list_member):
@@ -30,6 +30,11 @@ class NotificationPollService(service.Service):
         for _,uid in enumerate(uid_list_official):
             temp_capturer = capturer.BilibiliCapturer(uid)
             self.__bilibili_official_capturers.append(temp_capturer)
+
+    def _onStart(self):
+        if services_config.PROXY_ENABLE:
+            my_proxy.proxy_pool_url = services_config.PROXY_POOL_URL
+            my_proxy.current_proxy_ip = my_proxy.get_proxy()
 
     def _onUpdate(self):
         if not self.__is_in_poll_time():
@@ -41,19 +46,13 @@ class NotificationPollService(service.Service):
             captured_dynamic_content = capturer.capture_dynamic()
             if self.__verify_dynamic_is_ok(captured_uid,captured_dynamic_content):
                 if self.__check_dynamic_is_new(captured_uid,captured_dynamic_content):
-                    if self.__check_dynamic_is_can_push(captured_uid,captured_dynamic_content):
-                        dispatcher.dispatch_event(event_type.MESSAGE_PUSH,{
-                            'type' : message_type.MessageType.Dynamic,
-                            'content' : self.__convert_dynamic_content_to_message(captured_uid,captured_dynamic_content)
-                        })
+                    self.__push_new_dynamics(captured_uid,message_type.MessageType.Dynamic,captured_dynamic_content)
+   
 
             captured_live_status_content = capturer.capture_live_status()
             if self.__verify_live_status_is_ok(captured_uid,captured_live_status_content):
                 if self.__check_live_status_is_new(captured_uid,captured_live_status_content):
-                    dispatcher.dispatch_event(event_type.MESSAGE_PUSH,{
-                        'type' : message_type.MessageType.Live,
-                        'content' : self.__convert_live_status_content_to_message(captured_uid,captured_live_status_content)
-                    })
+                    self.__push_new_live_status(captured_uid,message_type.MessageType.Live,captured_live_status_content)
 
         #官号公告轮询,不检查直播状态(很少情况在官号直播)
         for _,capturer in enumerate(self.__bilibili_official_capturers):
@@ -61,14 +60,8 @@ class NotificationPollService(service.Service):
             captured_dynamic_content = capturer.capture_dynamic()
             if self.__verify_dynamic_is_ok(captured_uid,captured_dynamic_content):
                 if self.__check_dynamic_is_new(captured_uid,captured_dynamic_content):
-                    if self.__check_dynamic_is_can_push(captured_uid,captured_dynamic_content):
-                        dispatcher.dispatch_event(event_type.MESSAGE_PUSH,{
-                            'type' : message_type.MessageType.Notice,
-                            'content' : self.__convert_dynamic_content_to_message(captured_uid,captured_dynamic_content)
-                        })
+                    self.__push_new_dynamics(captured_uid,message_type.MessageType.Notice,captured_dynamic_content)
 
-        time.sleep(services_config.INTERVALS_SECOND)
-        
     #是否在轮询的时间内
     def __is_in_poll_time(self):
         current_time = time.strftime("%H:%M", time.localtime(time.time()))
@@ -104,21 +97,6 @@ class NotificationPollService(service.Service):
         
         return True
 
-    def __verify_live_status_is_ok(self,uid,content):
-        if content == "" :
-            return False
-
-        if content['code'] != 0:
-            logger.error('【查询直播状态】请求返回数据code错误：{code}'.format(code=content['code']))
-            return False 
-        try:
-            _ = content['data']['live_room']['liveStatus']
-        except (KeyError, TypeError):
-            logger.error('【查询动态状态】【{uid}】获取不到liveStatus'.format(uid=uid))
-            return False
-
-        return True
-
     #是否为最新的动态
     def __check_dynamic_is_new(self,uid,content):
         data = content['data']
@@ -126,63 +104,40 @@ class NotificationPollService(service.Service):
         uname = item['desc']['user_profile']['info']['uname']
         dynamic_id = item['desc']['dynamic_id']
         if self.__dynamic_dict.get(uid, None) is None:
-            self.__dynamic_dict[uid] = deque(maxlen=self.__len_of_deque)
-            cards = data['cards']
-            for index in range(self.__len_of_deque):
-                if index < len(cards):
-                    self.__dynamic_dict[uid].appendleft(cards[index]['desc']['dynamic_id'])
-            logger.info('【查询动态状态】【{uname}】动态初始化：{queue}'.format(uname=uname, queue=self.__dynamic_dict[uid]))
+            self.__dynamic_dict[uid] = {'cur_dynamic_id':dynamic_id, 'handle_dynamic_id':dynamic_id}
+            logger.info('【查询动态状态】【{uname}】动态初始化，动态id[{dynamic_id}]'.format(uname=uname,dynamic_id = dynamic_id))
             return False
 
-        if dynamic_id not in self.__dynamic_dict[uid]:
-            previous_dynamic_id = self.__dynamic_dict[uid].pop()
+        if dynamic_id != self.__dynamic_dict[uid]['cur_dynamic_id']:
+            previous_dynamic_id = self.__dynamic_dict[uid]['cur_dynamic_id']
             logger.info('【查询动态状态】【{}】上一条动态id[{}]，本条动态id[{}]'.format(uname, previous_dynamic_id, dynamic_id))
-            self.__dynamic_dic[uid].append(dynamic_id)
-            logger.info(self.__dynamic_dic[uid])
+            self.__dynamic_dict[uid]['cur_dynamic_id'] = dynamic_id
             return True
 
         return False
     
-    def __check_dynamic_is_can_push(self,uid,content):
-        data = content['data']
-        item = data['cards'][0] #获取最新的一条
+    #动态是否可推送
+    def __check_dynamic_is_can_push(self,item):
+        uid = item['desc']['uid']
         uname = item['desc']['user_profile']['info']['uname']
         dynamic_type = item['desc']['type']
         if dynamic_type not in services_config.HANDLE_DYNAMIC_TYPES:
-            logger.info('【查询动态状态】【{uname}】动态有更新，但不在需要推送的动态类型列表中'.format(uname=uname))
+            logger.info('【查询动态状态】【{uname}】动态有更新，但不在需要推送的动态类型列表中,类型[{dynamic_type}]'.format(uname=uname,dynamic_type=dynamic_type))
             return False
         return True
 
-    def __check_live_status_is_new(self,uid,content):
-        name = content['data']['name']
-        live_status = content['data']['live_room']['liveStatus']
-        if self.__living_status_dict.get(uid, None) is None:
-            self.__living_status_dict[uid] = live_status
-            logger.info('【查询直播状态】【{uname}】初始化'.format(uname=name))
-            return False
-
-        if self.__living_status_dict.get(uid, None) != live_status:
-            self.__living_status_dict[uid] = live_status
-
-            room_title = content['data']['live_room']['title']
-
-            if live_status == 1:
-                logger.info('【查询直播状态】【{name}】开播了，准备推送：{room_title}'.format(name=name, room_title=room_title))
-                return True
-        
-        return False
-
-    #TODO:将内容转换成消息推送
-    def __convert_dynamic_content_to_message(self,uid,content):
-        data = content['data']
-        item = data['cards'][0] #获取最新的一条
+    #将内容转换成消息推送
+    def __convert_dynamic_content_to_message(self,item):
+        uid = item['desc']['uid']
         uname = item['desc']['user_profile']['info']['uname']
         dynamic_type = item['desc']['type']
+        dynamic_id = item['desc']['dynamic_id']
         timestamp = item['desc']['timestamp']
         dynamic_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp))
         card_str = item['card']
         card = json.loads(card_str)
 
+        #TODO:图片推送
         content = None
         pic_url = None
         if dynamic_type == 1:
@@ -204,17 +159,83 @@ class NotificationPollService(service.Service):
             content = card['title']
             pic_url = card['image_urls'][0]
         
-        return content
+        return language_config.get_string(1000001,name=uname),language_config.get_string(1000002,name=uname,content=content,dynamic_id = dynamic_id)
 
-    #TODO:
-    def __convert_live_status_content_to_message(self,uid,content):
+    #筛选出最新的动态,按照时间推送
+    def __push_new_dynamics(self,uid,msgType,content):
+        data = content['data']
+        items = data['cards']
+
+        previous_handle_dynamic_id = self.__dynamic_dict[uid]['handle_dynamic_id']
+        last_dynamic_id_index = len(items) - 1
+        for index in range(len(items),0,-1):
+            item = items[index-1]
+            dynamic_id = item['desc']['dynamic_id']
+            if dynamic_id == previous_handle_dynamic_id:
+                last_dynamic_id_index = index
+                break
+                
+        for index in range(last_dynamic_id_index-1,0,-1):
+            item = items[index-1]
+            if self.__check_dynamic_is_can_push(item):
+                title,text = self.__convert_dynamic_content_to_message(item)
+                dispatcher.dispatch_event(event_type.MESSAGE_PUSH,{
+                    'type' : msgType,
+                    'title' : title,
+                    'text' : text,
+                })
+        self.__dynamic_dict[uid]['handle_dynamic_id'] = self.__dynamic_dict[uid]['cur_dynamic_id']
+
+    def __verify_live_status_is_ok(self,uid,content):
+        if content == "" :
+            return False
+
+        if content['code'] != 0:
+            logger.error('【查询直播状态】请求返回数据code错误：{code}'.format(code=content['code']))
+            return False 
+        try:
+            _ = content['data']['live_room']['liveStatus']
+        except (KeyError, TypeError):
+            logger.error('【查询动态状态】【{uid}】获取不到liveStatus'.format(uid=uid))
+            return False
+
+        return True
+
+    def __check_live_status_is_new(self,uid,content):
+        name = content['data']['name']
+        live_status = content['data']['live_room']['liveStatus']
+        if self.__living_status_dict.get(uid, None) is None:
+            self.__living_status_dict[uid] = live_status
+            logger.info('【查询直播状态】【{uname}】初始化直播状态'.format(uname=name))
+            return False
+
+        if self.__living_status_dict.get(uid, None) != live_status:
+            self.__living_status_dict[uid] = live_status
+            if live_status == 1:    #状态1表示开播
+                room_title = content['data']['live_room']['title']
+                logger.info('【查询直播状态】【{name}】开播了：{room_title}'.format(name=name, room_title=room_title))
+                return True
+        
+        return False
+
+    def __convert_live_status_content_to_message(self,content):
+        name = content['data']['name']
         room_id = content['data']['live_room']['roomid']
         room_title = content['data']['live_room']['title']
         room_cover_url = content['data']['live_room']['cover']
 
+        return language_config.get_string(1000003,name=name),language_config.get_string(1000004,name=name,content=room_title,url=room_cover_url)
 
-    def _onStart(self):
-        if services_config.PROXY_ENABLE:
-            my_proxy.proxy_pool_url = services_config.PROXY_POOL_URL
-            my_proxy.current_proxy_ip = my_proxy.get_proxy()
+    def __push_new_live_status(self,uid,msgType,content):
+        title,text = self.__convert_live_status_content_to_message(content)
+        dispatcher.dispatch_event(event_type.MESSAGE_PUSH,{
+            'type' : msgType,
+            'title' : title,
+            'text': text
+        })
+
+
+
+
+
             
