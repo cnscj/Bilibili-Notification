@@ -39,8 +39,9 @@ class PushingPollService(service.Service):
                 self.__notice_robot.send_markdown(title=msg_title,text=msg_text)
 
     def __push_message(self,msg):
+        msg_type = msg['type']
         msg_title = msg['title']
-        logger.info('【推送服务】准备推送:【{title}】'.format(title=msg_title))
+        logger.info('【推送服务机{type}】准备推送:【{title}】'.format(type=msg_type,title=msg_title))
         self.__message_queue.put(msg)
 
     def _onStart(self):

@@ -137,7 +137,6 @@ class NotificationPollService(service.Service):
         card_str = item['card']
         card = json.loads(card_str)
 
-        #TODO:图片推送
         content = None
         pic_url = None
         if dynamic_type == 1:
@@ -159,7 +158,7 @@ class NotificationPollService(service.Service):
             content = card['title']
             pic_url = card['image_urls'][0]
         
-        return language_config.get_string(1000001,name=uname),language_config.get_string(1000002,name=uname,content=content,dynamic_id = dynamic_id)
+        return language_config.get_string(1000001,name=uname),language_config.get_string(1000002,name=uname,content=content,pic_url=pic_url,dynamic_id=dynamic_id)
 
     #筛选出最新的动态,按照时间推送
     def __push_new_dynamics(self,uid,msgType,content):
@@ -224,7 +223,7 @@ class NotificationPollService(service.Service):
         room_title = content['data']['live_room']['title']
         room_cover_url = content['data']['live_room']['cover']
 
-        return language_config.get_string(1000003,name=name),language_config.get_string(1000004,name=name,content=room_title,url=room_cover_url)
+        return language_config.get_string(1000003,name=name),language_config.get_string(1000004,name=name,content=room_title,pic_url=room_cover_url,room_id=room_id)
 
     def __push_new_live_status(self,uid,msgType,content):
         title,text = self.__convert_live_status_content_to_message(content)
