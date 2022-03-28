@@ -22,7 +22,7 @@
 
 (1)`services_config`下的参数
 - `UID_LIST_MEMBER`为需要扫描的up主uid列表，使用英文逗号分隔，必填
-- `HANDLE_DYNAMIC_TYPES`为需要处理的动态类型,目前支持1转发动态,2图文动态,4文字动态,8投稿动态,64专栏动态
+- `HANDLE_DYNAMIC_TYPES`为需要处理的动态类型,目前支持:1转发动态,2图文动态,4文字动态,8投稿动态,64专栏动态
 
 (1)`dingding_config`下的参数
 - `DINGDING_PUSH_ROBOT_TOKEN`为需要推送的钉钉Webhook机器人token
