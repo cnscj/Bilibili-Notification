@@ -126,63 +126,29 @@ class NotificationPollService(service.Service):
             return False
         return True
 
-    #将内容转换成消息推送
-    def __convert_dynamic_content_to_message(self,item):
-        uid = item['desc']['uid']
-        uname = item['desc']['user_profile']['info']['uname']
-        dynamic_type = item['desc']['type']
-        dynamic_id = item['desc']['dynamic_id']
-        timestamp = item['desc']['timestamp']
-        dynamic_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp))
-        card_str = item['card']
-        card = json.loads(card_str)
-
-        content = None
-        pic_url = None
-        if dynamic_type == 1:
-            # 转发动态
-            content = card['item']['content']
-        elif dynamic_type == 2:
-            # 图文动态
-            content = card['item']['description']
-            pic_url = card['item']['pictures'][0]['img_src']
-        elif dynamic_type == 4:
-            # 文字动态
-            content = card['item']['content']
-        elif dynamic_type == 8:
-            # 投稿动态
-            content = card['title']
-            pic_url = card['pic']
-        elif dynamic_type == 64:
-            # 专栏动态
-            content = card['title']
-            pic_url = card['image_urls'][0]
-        
-        return language_config.get_string(1000001,name=uname),language_config.get_string(1000002,name=uname,content=content,pic_url=pic_url,dynamic_id=dynamic_id)
-
     #筛选出最新的动态,按照时间推送
     def __push_new_dynamics(self,uid,msgType,content):
         data = content['data']
         items = data['cards']
 
         previous_handle_dynamic_id = self.__dynamic_dict[uid]['handle_dynamic_id']
-        last_dynamic_id_index = len(items) - 1
-        for index in range(len(items),0,-1):
+        last_dynamic_id_index = 2   #只推最新一条
+        itemLen = min(9,len(items)) #最多取9条
+        for index in range(itemLen,0,-1):
             item = items[index-1]
             dynamic_id = item['desc']['dynamic_id']
-            if dynamic_id == previous_handle_dynamic_id:
+            if dynamic_id == previous_handle_dynamic_id: #XXX:dynamic_id获取错误容易暴毙
                 last_dynamic_id_index = index
                 break
                 
         for index in range(last_dynamic_id_index-1,0,-1):
             item = items[index-1]
             if self.__check_dynamic_is_can_push(item):
-                title,text = self.__convert_dynamic_content_to_message(item)
                 dispatcher.dispatch_event(event_type.MESSAGE_PUSH,{
                     'type' : msgType,
-                    'title' : title,
-                    'text' : text,
+                    'item' : item
                 })
+
         self.__dynamic_dict[uid]['handle_dynamic_id'] = self.__dynamic_dict[uid]['cur_dynamic_id']
 
     def __verify_live_status_is_ok(self,uid,content):
@@ -217,20 +183,10 @@ class NotificationPollService(service.Service):
         
         return False
 
-    def __convert_live_status_content_to_message(self,content):
-        name = content['data']['name']
-        room_id = content['data']['live_room']['roomid']
-        room_title = content['data']['live_room']['title']
-        room_cover_url = content['data']['live_room']['cover']
-
-        return language_config.get_string(1000003,name=name),language_config.get_string(1000004,name=name,content=room_title,pic_url=room_cover_url,room_id=room_id)
-
     def __push_new_live_status(self,uid,msgType,content):
-        title,text = self.__convert_live_status_content_to_message(content)
         dispatcher.dispatch_event(event_type.MESSAGE_PUSH,{
             'type' : msgType,
-            'title' : title,
-            'text': text
+            'item' : content,
         })
 
 

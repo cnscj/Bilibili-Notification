@@ -1,7 +1,14 @@
 #!/usr/bin/python
 import queue
 import threading
+import time
 from patterns import singleton
+def update_server(service):
+    if not service:
+        return
+    service.update()
+    # time.sleep(0.001) #减少CPU占用
+
 def poll_service(service):
     if not service:
         return
@@ -9,8 +16,7 @@ def poll_service(service):
     while (True):
         if service._is_async_stop:
             break
-        service.update()
-
+        update_server(service)
 
 class ServiceManager(singleton.Singleton):
     __sync_services = {}
@@ -74,6 +80,6 @@ class ServiceManager(singleton.Singleton):
             
             #同步服务轮询
             for _,v in self.__sync_services.items():
-                v.update()
+                update_server(v)
 
 service_manager = ServiceManager()
