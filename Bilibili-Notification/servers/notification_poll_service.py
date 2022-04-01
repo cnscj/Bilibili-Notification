@@ -2,10 +2,8 @@
 
 #消息轮询服务
 import time
-import json
 from collections import deque
 from configs import services_config
-from configs import language_config
 from servers import service
 from defines import event_type
 from defines import message_type
@@ -22,7 +20,7 @@ class NotificationPollService(service.Service):
     __living_status_dict = {}   #记录最新的直播状态
 
     __is_in_running_time = None
-
+    __is_in_running_time = None
     def __init__(self):
         uid_list_member = services_config.UID_LIST_MEMBER
         uid_list_official = services_config.UID_LIST_OFFICIAL
@@ -111,18 +109,26 @@ class NotificationPollService(service.Service):
     #是否为最新的动态
     def __check_dynamic_is_new(self,uid,content):
         data = content['data']
-        item = data['cards'][0] #获取最新的一条
-        uname = item['desc']['user_profile']['info']['uname']
+        cards = data['cards']
+        item = cards[0] #获取最新的一条
         dynamic_id = item['desc']['dynamic_id']
+        uname = item['desc']['user_profile']['info']['uname']
+        #这里应该保存最近N条的动态id,不知为何有时回抽风会把其中某条当成最新的造成重复推送
         if self.__dynamic_dict.get(uid, None) is None:
-            self.__dynamic_dict[uid] = {'cur_dynamic_id':dynamic_id, 'handle_dynamic_id':dynamic_id}
-            logger.info('【查询动态状态】【{uname}】动态初始化，动态id[{dynamic_id}]'.format(uname=uname,dynamic_id = dynamic_id))
+            maxlen = 10
+            dynamic_ids = deque(maxlen=maxlen)
+            for index in range(maxlen):
+                if index < len(cards):
+                    dynamic_ids.appendleft(cards[index]['desc']['dynamic_id'])  #从左边入队,最后一条既是cards[0]
+
+            self.__dynamic_dict[uid] = {'dynamic_ids':dynamic_ids, 'handle_dynamic_id':dynamic_id}
+            logger.info('【查询动态状态】【{uname}】动态初始化，动态id[{dynamic_id}]'.format(uname=uname,dynamic_id=dynamic_id))
             return False
 
-        if dynamic_id != self.__dynamic_dict[uid]['cur_dynamic_id']:
-            previous_dynamic_id = self.__dynamic_dict[uid]['cur_dynamic_id']
+        if dynamic_id not in self.__dynamic_dict[uid]['dynamic_ids']:
+            previous_dynamic_id = self.__dynamic_dict[uid]['dynamic_ids'][-1]   #取最后一次最新的
             logger.info('【查询动态状态】【{}】上一条动态id[{}]，本条动态id[{}]'.format(uname, previous_dynamic_id, dynamic_id))
-            self.__dynamic_dict[uid]['cur_dynamic_id'] = dynamic_id
+            self.__dynamic_dict[uid]['dynamic_ids'].append(dynamic_id)
             return True
 
         return False
@@ -160,7 +166,7 @@ class NotificationPollService(service.Service):
                     'item' : item
                 })
 
-        self.__dynamic_dict[uid]['handle_dynamic_id'] = self.__dynamic_dict[uid]['cur_dynamic_id']
+        self.__dynamic_dict[uid]['handle_dynamic_id'] = self.__dynamic_dict[uid]['dynamic_ids'][-1]
 
     def __verify_live_status_is_ok(self,uid,content):
         if content == "" :
