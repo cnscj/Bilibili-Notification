@@ -21,7 +21,7 @@ class NotificationPollService(service.Service):
     __dynamic_dict = {}         #记录各个成员间最新的动态id
     __living_status_dict = {}   #记录最新的直播状态
 
-    __is_in_running_time = False
+    __is_in_running_time = None
 
     def __init__(self):
         uid_list_member = services_config.UID_LIST_MEMBER
