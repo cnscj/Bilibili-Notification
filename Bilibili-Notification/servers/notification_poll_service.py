@@ -7,8 +7,8 @@ from configs import services_config
 from servers import service
 from defines import event_type
 from defines import message_type
+from commons import bilibili_capturer
 from commons.dispatcher import dispatcher
-from commons.bili_query import capturer
 from utils.logger import logger
 from utils.proxy import my_proxy
 
@@ -18,16 +18,16 @@ class NotificationPollService(service.Service):
 
     __dynamic_dict = {}         #记录各个成员间最新的动态id
     __living_status_dict = {}   #记录最新的直播状态
-
     __is_in_running_time = None
+
     def __init__(self):
         uid_list_member = services_config.UID_LIST_MEMBER
         uid_list_official = services_config.UID_LIST_OFFICIAL
         for _,uid in enumerate(uid_list_member):
-            temp_capturer = capturer.BilibiliCapturer(uid)
+            temp_capturer = bilibili_capturer.BilibiliCapturer(uid)
             self.__bilibili_member_capturers.append(temp_capturer)
         for _,uid in enumerate(uid_list_official):
-            temp_capturer = capturer.BilibiliCapturer(uid)
+            temp_capturer = bilibili_capturer.BilibiliCapturer(uid)
             self.__bilibili_official_capturers.append(temp_capturer)
 
     def _onStart(self):

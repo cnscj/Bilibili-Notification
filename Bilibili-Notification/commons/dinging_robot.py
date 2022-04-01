@@ -109,5 +109,5 @@ class DingDingRobot:
 
         send_url = self.get_send_url(attr_dict)
 
-        http_util.post(url = send_url, json = data)
+        http_util.requests_post(url = send_url, json = data)
 

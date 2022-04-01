@@ -3,7 +3,7 @@
 
 import json
 import time
-from commons.bili_query import util
+from utils import http_util
 from utils.logger import logger
 
 class BilibiliCapturer:
@@ -39,8 +39,8 @@ class BilibiliCapturer:
         query_url = 'http://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history' \
                 '?host_uid={uid}&offset_dynamic_id=0&need_top=0&platform=web&my_ts={my_ts}'.format(uid = uid, my_ts = int(time.time()))
         headers = self.get_headers(uid)
-        response = util.requests_get(query_url, '查询动态状态', headers=headers, use_proxy=True)
-        if util.check_response_is_ok(response):
+        response = http_util.requests_get(query_url, '查询动态状态', headers=headers, use_proxy=True)
+        if http_util.check_response_is_ok(response):
             try:
                 result = json.loads(str(response.content, 'utf-8'))
                 return result
@@ -54,8 +54,8 @@ class BilibiliCapturer:
             return
         query_url = 'http://api.bilibili.com/x/space/acc/info?mid={}&my_ts={}'.format(uid, int(time.time()))
         headers = self.get_headers(uid)
-        response = util.requests_get(query_url, '查询直播状态', headers=headers, use_proxy=True)
-        if util.check_response_is_ok(response):
+        response = http_util.requests_get(query_url, '查询直播状态', headers=headers, use_proxy=True)
+        if http_util.check_response_is_ok(response):
             try:
                 result = json.loads(str(response.content, 'utf-8'))
                 return result
