@@ -71,8 +71,8 @@ class DingdingPushService(service.Service):
         card_str = item['card']
         card = json.loads(card_str)
 
-        content = None
-        pic_url = None
+        content = ''
+        pic_tags = ''
         if dynamic_type == 1:
             # 转发动态
             content = card['item']['content']
@@ -80,6 +80,7 @@ class DingdingPushService(service.Service):
             # 图文动态
             content = card['item']['description']
             pic_url = card['item']['pictures'][0]['img_src']
+            pic_tags = "![pic]({pic_url})".format(pic_url=pic_url)
         elif dynamic_type == 4:
             # 文字动态
             content = card['item']['content']
@@ -87,20 +88,23 @@ class DingdingPushService(service.Service):
             # 投稿动态
             content = card['title']
             pic_url = card['pic']
+            pic_tags = "![pic]({pic_url})".format(pic_url=pic_url)
         elif dynamic_type == 64:
             # 专栏动态
             content = card['title']
             pic_url = card['image_urls'][0]
+            pic_tags = "![pic]({pic_url})".format(pic_url=pic_url)
         
-        return language_config.get_string(1000001,name=uname),language_config.get_string(1000002,name=uname,content=content,pic_url=pic_url,dynamic_id=dynamic_id)
+        return language_config.get_string(1000001,name=uname),language_config.get_string(1000002,name=uname,content=content,pic_tags=pic_tags,dynamic_id=dynamic_id)
 
     def __convert_live_status_content_to_message(self,content):
         name = content['data']['name']
         room_id = content['data']['live_room']['roomid']
         room_title = content['data']['live_room']['title']
         room_cover_url = content['data']['live_room']['cover']
+        pic_tags = "![pic]({pic_url})".format(pic_url=room_cover_url)
 
-        return language_config.get_string(1000003,name=name),language_config.get_string(1000004,name=name,content=room_title,pic_url=room_cover_url,room_id=room_id)
+        return language_config.get_string(1000003,name=name),language_config.get_string(1000004,name=name,content=room_title,pic_tags=pic_tags,room_id=room_id)
 
     def _onStart(self):
         dispatcher.add_event_listener(event_type.MESSAGE_PUSH,self.__push_message)

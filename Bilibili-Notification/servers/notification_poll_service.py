@@ -21,6 +21,8 @@ class NotificationPollService(service.Service):
     __dynamic_dict = {}         #记录各个成员间最新的动态id
     __living_status_dict = {}   #记录最新的直播状态
 
+    __is_in_running_time = False
+
     def __init__(self):
         uid_list_member = services_config.UID_LIST_MEMBER
         uid_list_official = services_config.UID_LIST_OFFICIAL
@@ -67,12 +69,21 @@ class NotificationPollService(service.Service):
         current_time = time.strftime("%H:%M", time.localtime(time.time()))
         begin_time = services_config.BEGIN_TIME
         end_time = services_config.END_TIME
-        if begin_time == '':
-            begin_time = '00:00'
-        if end_time == '':
-            end_time = '23:59'
 
-        return (begin_time <= current_time <= end_time)
+        is_in_poll_time = False
+        if begin_time == '' or  end_time == '':
+            is_in_poll_time = True
+        else :
+            is_in_poll_time = (begin_time <= current_time <= end_time)
+
+        if is_in_poll_time != self.__is_in_running_time:
+            if is_in_poll_time:
+                logger.info('【查询服务机】: 开始轮询服务')
+            else :
+                logger.info('【查询服务机】: 进入休眠时间')
+            self.__is_in_running_time = is_in_poll_time
+
+        return is_in_poll_time
 
     #验证内容是否正确
     def __verify_dynamic_is_ok(self,uid,content):
