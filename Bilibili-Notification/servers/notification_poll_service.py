@@ -20,7 +20,6 @@ class NotificationPollService(service.Service):
     __living_status_dict = {}   #记录最新的直播状态
 
     __is_in_running_time = None
-    __is_in_running_time = None
     def __init__(self):
         uid_list_member = services_config.UID_LIST_MEMBER
         uid_list_official = services_config.UID_LIST_OFFICIAL
