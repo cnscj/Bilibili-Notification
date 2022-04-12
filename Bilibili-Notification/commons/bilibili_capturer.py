@@ -60,5 +60,5 @@ class BilibiliCapturer:
                 result = json.loads(str(response.content, 'utf-8'))
                 return result
             except UnicodeDecodeError:
-                logger.error('【查询动态状态】【{uid}】解析content出错'.format(uid=uid))
+                logger.error('【查询直播状态】【{uid}】解析content出错'.format(uid=uid))
         return ""

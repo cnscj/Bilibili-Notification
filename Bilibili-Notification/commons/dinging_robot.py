@@ -5,8 +5,10 @@ import time
 import hmac
 import hashlib
 import base64
+import json
 import urllib.parse
 from utils import http_util
+from utils.logger import logger
 
 #钉钉推送
 DINGDING_PUSH_WEBHOOK_URL = "https://oapi.dingtalk.com/robot"
@@ -109,5 +111,13 @@ class DingDingRobot:
 
         send_url = self.get_send_url(attr_dict)
 
-        http_util.requests_post(url = send_url, json = data)
+        response = http_util.requests_post(url = send_url, json = data)
+        if http_util.check_response_is_ok(response):
+            try:
+                result = json.loads(str(response.content, 'utf-8'))
+                if result['errcode'] != 0:
+                    logger.error('【钉钉推送】{} , data : {}'.format(result['errmsg'],data))
+                return result
+            except UnicodeDecodeError:
+                logger.error('【钉钉推送】解析content出错')
 
