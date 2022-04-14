@@ -177,7 +177,7 @@ class NotificationPollService(service.Service):
         try:
             _ = content['data']['live_room']['liveStatus']
         except (KeyError, TypeError):
-            logger.error('【查询动态状态】【{uid}】获取不到liveStatus'.format(uid=uid))
+            logger.error('【查询直播状态】【{uid}】获取不到liveStatus'.format(uid=uid))
             return False
 
         return True
