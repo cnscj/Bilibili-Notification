@@ -137,10 +137,21 @@ class NotificationPollService(service.Service):
         uid = item['desc']['uid']
         uname = item['desc']['user_profile']['info']['uname']
         dynamic_type = item['desc']['type']
-        if dynamic_type not in services_config.HANDLE_DYNAMIC_TYPES:
+
+        #区分成员号和官号,官号需要转发,成员号不需要
+        is_can_push = True
+        if uid in services_config.UID_LIST_MEMBER:
+            if dynamic_type not in services_config.HANDLE_MEMBER_DYNAMIC_TYPES:
+                is_can_push = False
+
+        if uid in services_config.UID_LIST_OFFICIAL:
+            if dynamic_type not in services_config.HANDLE_OFFICIAL_DYNAMIC_TYPES:
+                is_can_push = False
+
+        if not is_can_push:
             logger.info('【查询动态状态】【{uname}】动态有更新，但不在需要推送的动态类型列表中,类型[{dynamic_type}]'.format(uname=uname,dynamic_type=dynamic_type))
-            return False
-        return True
+
+        return is_can_push
 
     #筛选出最新的动态,按照时间推送
     def __push_new_dynamics(self,uid,msgType,content):
