@@ -99,7 +99,7 @@ class NotificationPollService(service.Service):
             item = data['cards'][0]
             try:
                 _ = item['desc']['user_profile']['info']['uname']
-            except KeyError:
+            except (KeyError,TypeError):
                 logger.error('【查询动态状态】【{uid}】获取不到uname'.format(uid=uid))
                 return False
         
