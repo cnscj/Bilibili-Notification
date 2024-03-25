@@ -91,13 +91,13 @@ class NotificationPollService(service.Service):
             logger.error('【查询动态状态】请求返回数据code错误：{code}'.format(code=content['code']))
             return False
         else:
-            data = content['data']
-            if len(data['cards']) == 0:
-                logger.info('【查询动态状态】【{uid}】动态列表为空'.format(uid=uid))
-                return False
-
-            item = data['cards'][0]
             try:
+                data = content['data']
+                if len(data['cards']) == 0:
+                    logger.info('【查询动态状态】【{uid}】动态列表为空'.format(uid=uid))
+                    return False
+
+                item = data['cards'][0]
                 _ = item['desc']['user_profile']['info']['uname']
             except (KeyError,TypeError):
                 logger.error('【查询动态状态】【{uid}】获取不到uname'.format(uid=uid))
